@@ -28,6 +28,8 @@ class Viewer:
         self.selected_algorithm = list(algorithms.keys())[0]
         self.setup_ui()
 
+        self.blocked_routes = set()
+
         end_image_path = path.join(path.dirname(__file__), "..", "assets", "images", "end_position.png")
         self.original_end_point_image = Image.open(end_image_path)
 
@@ -37,6 +39,9 @@ class Viewer:
         # TODO: Add other vehicle images
         vehicle_image_path = path.join(path.dirname(__file__), "..", "assets", "images", "truck.png")
         self.original_vehicle_image = Image.open(vehicle_image_path)
+
+        square_image_path = path.join(path.dirname(__file__), "..", "assets", "images", "square.png")
+        self.original_square_image = Image.open(square_image_path)
 
         self.tooltip = Label(root, text="", bg="white", fg="black", bd=1, relief=SOLID, padx=5, pady=2)
         self.tooltip.place_forget()
@@ -58,7 +63,35 @@ class Viewer:
         self.root.config(menu=menu)
 
         # Restart simulation
-        menu.add_command(label="↺ Restart", command=self.restart_simulation_callback)
+        menu.add_command(label="↺ Restart", command=self.restart_simulation)
+
+        # Block Route
+        menu.add_command(label="Block Route", command=self.block_route_ui)
+
+    def restart_simulation(self):
+        self.blocked_routes.clear()
+        self.restart_simulation_callback()
+
+    def block_route_ui(self):
+        block_route_window = Toplevel(self.root)
+        block_route_window.title("Block Route")
+        
+        Label(block_route_window, text="Enter the route to block (format: node1,node2):").pack(pady=5)
+        route_var = StringVar()
+        Entry(block_route_window, textvariable=route_var).pack(pady=5)
+        
+        def confirm_block_route():
+            route = route_var.get()
+            if "," in route:
+                self.block_route(route.strip())
+                print(f"Blocked route: {route.strip()}")
+                self.restart_simulation_callback()
+            else:
+                print("Invalid route format. Please use 'node1,node2'.")
+            block_route_window.destroy()
+        
+        Button(block_route_window, text="Block", command=confirm_block_route).pack(pady=5)
+
 
     def update_menu_label(self):
         self.setup_ui()
@@ -85,11 +118,37 @@ class Viewer:
             return scaled_x, scaled_y
 
         # Draw edges
+        drawn_edges = set()
         for node in graph.nodes.values():
             for neighbour, open in node.neighbours:
+                route = f'{node.id},{neighbour.id}'
+                if route in drawn_edges or f'{neighbour.id},{node.id}' in drawn_edges:
+                    continue
+                drawn_edges.add(route)
+                
                 x1, y1 = scale(node.position.x, node.position.y)
                 x2, y2 = scale(neighbour.position.x, neighbour.position.y)
-                self.canvas.create_line(x1, y1, x2, y2, fill="black" if open else "red")
+                
+                # Draw the line
+                if route in self.blocked_routes:
+                    self.canvas.create_line(x1, y1, x2, y2, fill="red")
+                else:
+                    self.canvas.create_line(x1, y1, x2, y2, fill="black" if open else "green")
+                
+                # Calculate the midpoint of the edge
+                mid_x = (x1 + x2) / 2
+                mid_y = (y1 + y2) / 2
+                
+                # Tooltip information
+                square_image = self.original_square_image.resize((5, 5), Image.BILINEAR)
+                tk_edge_image = ImageTk.PhotoImage(square_image)
+                self.images_on_canvas.append(tk_edge_image)
+                idEdge = self.canvas.create_image(mid_x, mid_y, image=tk_edge_image, anchor=CENTER)
+                edge_text = f"Edge: {node.id},{neighbour.id}"
+
+                # Bind tooltip to the graphical edge ID
+                self.canvas.tag_bind(idEdge, "<Enter>", lambda e, t=edge_text: self.show_tooltip(e, t))
+                self.canvas.tag_bind(idEdge, "<Leave>", self.hide_tooltip)
 
         # Draw nodes
         for node in graph.nodes.values():
@@ -160,7 +219,7 @@ class Viewer:
             if i < len(positions) - 1:
                 x1, y1 = scale(positions[i].x, positions[i].y)
                 x2, y2 = scale(positions[i + 1].x, positions[i + 1].y)
-                self.canvas.create_line(x1, y1, x2, y2, fill="red", width=4)
+                self.canvas.create_line(x1, y1, x2, y2, fill="green", width=4)
                 # All segments get drawn in 1.5 seconds
                 self.root.after(int((1.5 * 1000) // len(positions)), lambda: draw_segment(i + 1))
             else:
@@ -172,6 +231,11 @@ class Viewer:
         draw_segment(0)
 
     def select_algorithm(self, selected_algorithm):
-        self.algorithm_callback(selected_algorithm)
+        self.algorithm_callback(selected_algorithm, self.blocked_routes)
         self.selected_algorithm = selected_algorithm
         self.update_menu_label()
+
+
+    
+    def block_route(self, route):
+        self.blocked_routes.add(route)
