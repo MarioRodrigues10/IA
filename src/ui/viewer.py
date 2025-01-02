@@ -13,12 +13,31 @@ algorithms = {
     "greedy": "Greedy search",
 }
 
+heuristics = {
+    "manhattan_heuristic": "Manhattan Distance",
+    "time_estimation_heuristic": "Time Estimation",
+    "blocked_route_heuristic": "Blocked Route",
+    "dynamic_supply_priority_heuristic": "Dynamic Supply Priority",
+    "delivery_success_probability_heuristic": "Delivery Success Probability",
+    "final_combined_heuristic": "Final Combined",
+}
+
+terrains = {
+    0: "LAND",
+    1: "AIR",
+    2: "WATER"
+}
+
 class Viewer:
-    def __init__(self, root, algorithm_callback, start_simulation_callback, restart_simulation_callback):
+    def __init__(self, root, algorithm_callback, start_simulation_callback, restart_simulation_callback, endpoints_callback, reposition_vehicles_callback):
         self.root = root
         self.algorithm_callback = algorithm_callback
         self.start_simulation_callback = start_simulation_callback
         self.restart_simulation_callback = restart_simulation_callback
+        self.endpoints_callback = endpoints_callback
+        self.reposition_vehicles_callback = reposition_vehicles_callback
+        self.selected_end_point_index = 0
+
         root.geometry("1200x600")
         root.title("Inteligência Artificial - Simulador")
 
@@ -26,6 +45,8 @@ class Viewer:
         self.canvas.pack()
 
         self.selected_algorithm = list(algorithms.keys())[0]
+        self.selected_heuristic = list(heuristics.keys())[0]
+        self.selected_terrain = list(terrains.keys())[0]
         self.setup_ui()
 
         self.blocked_routes = set()
@@ -33,12 +54,20 @@ class Viewer:
         end_image_path = path.join(path.dirname(__file__), "..", "assets", "images", "end_position.png")
         self.original_end_point_image = Image.open(end_image_path)
 
+        priority_image_path = path.join(path.dirname(__file__), "..", "assets", "images", "priority.png")
+        self.original_priority_point_image = Image.open(priority_image_path)
+
         start_image_path = path.join(path.dirname(__file__), "..", "assets", "images", "start_position.png")
         self.original_start_point_image = Image.open(start_image_path)
 
-        # TODO: Add other vehicle images
-        vehicle_image_path = path.join(path.dirname(__file__), "..", "assets", "images", "truck.png")
-        self.original_vehicle_image = Image.open(vehicle_image_path)
+        truck_image_path = path.join(path.dirname(__file__), "..", "assets", "images", "truck.png")
+        self.original_truck_image = Image.open(truck_image_path)
+
+        boat_image_path = path.join(path.dirname(__file__), "..", "assets", "images", "boat.png")
+        self.original_boat_image = Image.open(boat_image_path)
+
+        drone_image_path = path.join(path.dirname(__file__), "..", "assets", "images", "drone.png")
+        self.original_drone_image = Image.open(drone_image_path)
 
         square_image_path = path.join(path.dirname(__file__), "..", "assets", "images", "square.png")
         self.original_square_image = Image.open(square_image_path)
@@ -62,11 +91,35 @@ class Viewer:
         menu.add_cascade(label=f"⚙️ Algorithm: {self.selected_algorithm.upper()}", menu=algorithm_menu)
         self.root.config(menu=menu)
 
+        heuristic_menu = Menu(menu, tearoff=0)
+        for heuristic_key, heuristic_name in heuristics.items():
+            heuristic_menu.add_command(label=heuristic_name, command=lambda key=heuristic_key: self.select_heuristic(key))
+        menu.add_cascade(label=f"Heuristic: {self.selected_heuristic}", menu=heuristic_menu)
+
+        end_point_menu = Menu(menu, tearoff=0)
+        end_points = self.endpoints_callback()
+        for idx, end_point in enumerate(end_points):
+            end_point_menu.add_command(
+                label=f"End Point {idx+1}",
+                command=lambda idx=idx: self.select_end_point(idx),
+            )
+        menu.add_cascade(label="Select End Point", menu=end_point_menu)
+
+        terrain_menu = Menu(menu, tearoff=0)
+        for terrain_key, terrain_name in terrains.items():
+            terrain_menu.add_command(
+                label=terrain_name,
+                command=lambda key=terrain_key: self.select_terrain(key)
+            )
+        menu.add_cascade(label=f"terrain: {self.selected_terrain}", menu=terrain_menu)
+
         # Restart simulation
         menu.add_command(label="↺ Restart", command=self.restart_simulation)
 
         # Block Route
         menu.add_command(label="Block Route", command=self.block_route_ui)
+
+        menu.add_command(label="Reposition Vehicles", command=self.reposition_vehicles_callback)
 
     def restart_simulation(self):
         self.blocked_routes.clear()
@@ -168,14 +221,20 @@ class Viewer:
         self.canvas.tag_bind(start_id, "<Leave>", self.hide_tooltip)
 
         # Draw end points
-        for end_point in end_points:
+        for idx, end_point in enumerate(end_points):
             x, y = scale(end_point.position.x, end_point.position.y)
-            end_image = self.original_end_point_image.resize((30, 30), Image.BILINEAR)
+            
+            if end_point.priority == 1:
+                end_image = self.original_priority_point_image.resize((25, 25), Image.BILINEAR)
+            else:
+                end_image = self.original_end_point_image.resize((30, 30), Image.BILINEAR)
+            
             tk_end_image = ImageTk.PhotoImage(end_image)
             self.images_on_canvas.append(tk_end_image)
             end_id = self.canvas.create_image(x, y, image=tk_end_image, anchor=CENTER)
 
-            # Tooltip for end points
+            self.canvas.create_text(x + 15, y - 15,text=str(idx + 1),fill="black",font=("Arial", 12, "bold"))
+            # Tooltip para os endpoints
             needed_supplies_text = "Needed supplies: \n" + "\n".join(
                 f"{supply_type}: {quantity}" for supply_type, quantity in end_point.get_supplies_needed().items()
             )
@@ -186,8 +245,16 @@ class Viewer:
         i = 1
         for vehicle in vehicles:
             x, y = scale(vehicle.position.x + 0.0006 * i, vehicle.position.y)
-            vehicle_image = self.original_vehicle_image.resize((20, 20), Image.BILINEAR)
-            tk_vehicle_image = ImageTk.PhotoImage(vehicle_image)
+
+            if (vehicle.type.transportation == 0):
+                truck_image = self.original_truck_image.resize((20, 20), Image.BILINEAR)
+                tk_vehicle_image = ImageTk.PhotoImage(truck_image)
+            elif (vehicle.type.transportation == 1):
+                drone_image = self.original_drone_image.resize((25, 25), Image.BILINEAR)
+                tk_vehicle_image = ImageTk.PhotoImage(drone_image)
+            elif (vehicle.type.transportation == 2):
+                boat_image = self.original_boat_image.resize((20, 20), Image.BILINEAR)
+                tk_vehicle_image = ImageTk.PhotoImage(boat_image)
             self.images_on_canvas.append(tk_vehicle_image)
             vehicle_id = self.canvas.create_image(x, y, image=tk_vehicle_image, anchor=CENTER)
             i += 1
@@ -230,12 +297,50 @@ class Viewer:
         # Start drawing the path from the first segment
         draw_segment(0)
 
+    def show_info_box(self, total_distance, total_time):
+        info_box = Toplevel(self.root)
+        info_box.title("Simulation Info")
+        info_box.resizable(False, False)
+        
+        root_width = self.root.winfo_width()
+        root_height = self.root.winfo_height()
+
+        info_box_width = 300
+        info_box_height = 150
+        x_position = root_width - info_box_width
+        y_position = root_height - info_box_height
+
+        info_box.geometry(f"{info_box_width}x{info_box_height}+{x_position}+{y_position}")
+
+        Label(info_box, 
+            text=f"Total Distance: {total_distance:.2f} km\nTotal Time: {total_time:.2f} hours",
+            font=("Arial", 12),
+            justify="center",
+            padx=30,
+            pady=30).pack()
+
+        Button(info_box, text="OK", command=info_box.destroy).pack(pady=10)
+        info_box.after(5000, info_box.destroy)
+
     def select_algorithm(self, selected_algorithm):
-        self.algorithm_callback(selected_algorithm, self.blocked_routes)
+        self.algorithm_callback(selected_algorithm, self.blocked_routes, self.selected_heuristic, self.selected_terrain)
         self.selected_algorithm = selected_algorithm
         self.update_menu_label()
 
+    def select_end_point(self, end_point_index):
+        self.selected_end_point_index = end_point_index
 
-    
+    def select_heuristic(self, selected_heuristic):
+        self.selected_heuristic = selected_heuristic
+        self.algorithm_callback(self.selected_algorithm, self.blocked_routes, self.selected_heuristic, self.selected_terrain)
+        print(f"Heuristic updated to: {selected_heuristic}")
+        self.update_menu_label()
+
+    def select_terrain(self, selected_terrain):
+        self.selected_terrain = selected_terrain
+        self.algorithm_callback(self.selected_algorithm, self.blocked_routes, self.selected_heuristic, self.selected_terrain)
+        print(f"Terrain updated to: {self.selected_terrain}")
+        self.update_menu_label()
+
     def block_route(self, route):
         self.blocked_routes.add(route)
