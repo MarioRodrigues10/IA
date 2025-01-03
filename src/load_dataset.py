@@ -8,6 +8,10 @@ from vehicle import Vehicle, VehicleStatus, VehicleType
 from weather import Weather, WeatherCondition
 
 class State:
+    """
+    Represents the current state of the simulation, including time, vehicles, start point, end points, 
+    geographical graph, and weather conditions.
+    """
     def __init__(self, time, vehicles, start_point, end_points, graph, weather):
         self.time = time
         self.vehicles = vehicles
@@ -17,6 +21,12 @@ class State:
         self.weather = weather
 
 def load_dataset(dataset_path):
+    """
+    Loads and processes the dataset to initialize the state of the simulation.
+    
+    :param dataset_path: Path to the JSON dataset file
+    :return: An instance of the State class representing the simulation state
+    """
     with open(dataset_path, 'r') as file:
         dataset = json.load(file)
 

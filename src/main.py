@@ -20,6 +20,10 @@ heuristic = "manhattan_heuristic"  # Default heuristic
 terrain = 0  # Default terrain
 
 def main():
+    """
+    Main function to initialize and run the simulation.
+    Loads dataset, sets up UI, and starts the simulation.
+    """
     global algorithm, heuristic, terrain
     global app
     global state
@@ -40,6 +44,14 @@ def main():
     app.run()
 
 def set_algorithm(selected_algorithm, blocked_routes, selected_heuristic, selected_terrain):
+    """
+    Updates the selected algorithm, heuristic, and terrain.
+
+    :param selected_algorithm: Chosen algorithm for supply delivery
+    :param blocked_routes: Routes that are blocked
+    :param selected_heuristic: Chosen heuristic for informed algorithms
+    :param selected_terrain: Chosen terrain for simulation
+    """
     global algorithm, heuristic, terrain
     algorithm = selected_algorithm
     heuristic = selected_heuristic

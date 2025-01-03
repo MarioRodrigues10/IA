@@ -1,6 +1,26 @@
 import tkinter as tk
 
 class GraphCanvas(tk.Canvas):
+    """
+    A custom tkinter Canvas that supports zooming and dragging.
+
+    Attributes:
+        scale_factor (float): The current zoom level of the canvas.
+        drag_data (dict): A dictionary to store the starting coordinates for dragging.
+
+    Methods:
+        zoom(event):
+            Zooms the canvas in or out using the mouse wheel.
+        
+        zoom_linux(event):
+            Handles zooming for Linux using the mouse button 4 and 5 events.
+        
+        start_drag(event):
+            Initiates dragging by storing the initial mouse position.
+        
+        drag(event):
+            Drags the canvas by calculating the distance moved since the last event.
+    """
     def __init__(self, master, **kwargs):
         super().__init__(master, **kwargs)
         self.scale_factor = 1.0  # Initial scale factor

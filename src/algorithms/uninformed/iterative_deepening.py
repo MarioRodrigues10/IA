@@ -5,6 +5,28 @@ from algorithms.utils import manhattan_distance
 from weather import WeatherCondition
 
 def ids_supply_delivery(state, start_point, end_point, terrain, weather, blocked_routes, max_depth_limit=50):
+    """
+    Implements an Iterative Deepening Search (IDS) approach for supply delivery.
+
+    This algorithm combines the depth-first search (DFS) approach with a progressively increasing 
+    depth limit, aiming to find a path from the start point to the destination within the maximum
+    depth limit. If a valid path is found, it assigns supplies to available vehicles and calculates 
+    the total time for the delivery, considering weather conditions.
+
+    Args:
+        state (object): The current simulation state, including vehicles and graph information.
+        start_point (object): The starting node representing the origin of supplies.
+        end_point (object): The end node representing the delivery destination.
+        terrain (object): Terrain information to determine vehicle accessibility.
+        weather (object): Weather conditions affecting vehicle movement and travel time.
+        blocked_routes (set): A set of blocked routes that vehicles cannot use.
+        max_depth_limit (int, optional): The maximum depth limit for the iterative deepening search. Defaults to 50.
+
+    Returns:
+        tuple: A tuple containing the path as a list of positions, total distance covered, total time taken,
+               and a dictionary mapping vehicle IDs to the supplies they delivered.
+               If no path is found, returns (None, 0, 0, "No path found").
+    """
     # Check needed supplies
     needed_supplies = end_point.supplies_needed
     available_supplies = start_point.supplies

@@ -7,6 +7,23 @@ from vehicle import VehicleStatus
 from weather import WeatherCondition
 
 def a_star_supply_delivery(state, start_point, end_point, heuristic, terrain, weather, blocked_routes):
+    """
+    Implements the A* algorithm for supply delivery.
+
+    Args:
+        state (object): The current state of the simulation, including the graph, vehicles, and other relevant data.
+        start_point (object): The starting node containing the supplies to be delivered.
+        end_point (object): The destination node where supplies are needed.
+        heuristic (function): A heuristic function used to estimate the cost to the goal.
+        terrain (object): The type of terrain for the delivery route.
+        weather (WeatherCondition): Current weather conditions affecting route accessibility and velocity.
+        blocked_routes (set): A set of blocked routes that vehicles cannot traverse.
+
+    Returns:
+        tuple: A tuple containing the path as a list of positions, total distance covered, total time taken,
+               and a dictionary mapping vehicle IDs to the supplies they delivered.
+               If no path is found, returns (None, 0, 0, "No path found").
+    """
     # Check needed supplies
     needed_supplies = end_point.supplies_needed
     available_supplies = start_point.supplies

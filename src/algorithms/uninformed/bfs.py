@@ -6,7 +6,22 @@ from algorithms.utils import manhattan_distance
 from weather import WeatherCondition
 
 def bfs_supply_delivery(state, start_point, end_point, terrain, weather, blocked_routes):
-    print("BFS", blocked_routes)
+    """
+    Implements a Breadth-First Search (BFS) approach for supply delivery.
+
+    Args:
+        state (object): The current simulation state, including vehicles and graph information.
+        start_point (object): The starting node representing the origin of supplies.
+        end_point (object): The end node representing the delivery destination.
+        terrain (object): Terrain information to determine vehicle accessibility.
+        weather (object): Weather conditions impacting traversal.
+        blocked_routes (set): A set of blocked routes that vehicles cannot use.
+
+    Returns:
+        tuple: Contains the delivery path, total distance, total time, 
+               and a mapping of vehicle IDs to their assigned supplies, 
+               or an error message if no path is found.
+    """
     # Check needed supplies
     needed_supplies = end_point.supplies_needed
     available_supplies = start_point.supplies

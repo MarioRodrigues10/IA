@@ -4,10 +4,34 @@ from vehicle import VehicleStatus
 
 # Heuristic based on Manhattan distance
 def manhattan_heuristic(p1, p2, state, end_point):
+    """
+    Estimates the cost between two points using Manhattan distance.
+
+    Args:
+        p1 (Point): The starting point.
+        p2 (Point): The destination point.
+        state (object): The current state of the simulation.
+        end_point (object): The end node representing the delivery destination.
+
+    Returns:
+        float: The Manhattan distance between the two points.
+    """
     return abs(p1.x - p2.x) + abs(p1.y - p2.y)
 
 # Heuristic to estimate the minimum time to traverse between points
 def time_estimation_heuristic(p1, p2, state, end_point):
+    """
+    Estimates the minimum time required to travel between two points.
+
+    Args:
+        p1 (Point): The starting point.
+        p2 (Point): The destination point.
+        state (object): The current state of the simulation, including available vehicles.
+        end_point (object): The end node representing the delivery destination.
+
+    Returns:
+        float: The estimated time based on vehicle speed or infinity if no vehicles are available.
+    """
     min_time = float('inf')
     for vehicle in state.vehicles:
         if vehicle.vehicle_status == VehicleStatus.IDLE:
@@ -18,6 +42,18 @@ def time_estimation_heuristic(p1, p2, state, end_point):
 
 # Heuristic to account for blocked routes
 def blocked_route_heuristic(p1, p2, state, end_point):
+    """
+    Adds a penalty to the heuristic for routes that are blocked.
+
+    Args:
+        p1 (Point): The starting point.
+        p2 (Point): The destination point.
+        state (object): The current state of the simulation.
+        end_point (object): The end node representing the delivery destination.
+
+    Returns:
+        float: The heuristic value including penalties for blocked routes.
+    """
     penalty = 0
     current_node = state.graph.nodes.get(p1)
     if current_node:
@@ -28,6 +64,18 @@ def blocked_route_heuristic(p1, p2, state, end_point):
 
 # Heuristic to prioritize addressing supply deficits dynamically
 def dynamic_supply_priority_heuristic(p1, p2, state, end_point):
+    """
+    Adjusts the heuristic dynamically based on the supply deficits at the destination.
+
+    Args:
+        p1 (Point): The starting point.
+        p2 (Point): The destination point.
+        state (object): The current state of the simulation.
+        end_point (object): The end node representing the delivery destination.
+
+    Returns:
+        float: The heuristic value adjusted for supply deficits.
+    """
     supplies_needed = end_point.get_supplies_needed()
     critical_penalty = 0
     for supply_type, quantity in supplies_needed.items():
@@ -38,6 +86,18 @@ def dynamic_supply_priority_heuristic(p1, p2, state, end_point):
 
 # Heuristic to estimate the probability of delivery success
 def delivery_success_probability_heuristic(p1, p2, state, end_point):
+    """
+    Penalizes the heuristic based on the probability of successful delivery.
+
+    Args:
+        p1 (Point): The starting point.
+        p2 (Point): The destination point.
+        state (object): The current state of the simulation, including vehicles and supplies.
+        end_point (object): The end node representing the delivery destination.
+
+    Returns:
+        float: A penalty inversely proportional to the estimated delivery success probability.
+    """
     supplies_needed = end_point.get_supplies_needed()
     total_weight_needed = sum(
         quantity * get_weight_volume_per_supply(SupplyType[supply_type])[0]
@@ -64,6 +124,18 @@ def delivery_success_probability_heuristic(p1, p2, state, end_point):
 
 # Final combined heuristic combining various factors
 def final_combined_heuristic(p1, p2, state, end_point):
+    """
+    Combines multiple heuristics to estimate the cost between two points.
+
+    Args:
+        p1 (Point): The starting point.
+        p2 (Point): The destination point.
+        state (object): The current state of the simulation.
+        end_point (object): The end node representing the delivery destination.
+
+    Returns:
+        float: The combined heuristic value considering distance, time, blockages, supply deficits, and delivery success probability.
+    """
 
     manhattan_cost = manhattan_heuristic(p1, p2, state, end_point)
     time_cost = time_estimation_heuristic(p1, p2, state, end_point)

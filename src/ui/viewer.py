@@ -5,7 +5,6 @@ from ui.graph_canvas import GraphCanvas
 import time
 from weather import Weather, WeatherCondition
 from graph.position import Position
-import random
 
 algorithms = {
     "bfs": "Breadth-first search",
@@ -32,6 +31,11 @@ terrains = {
 }
 
 class Viewer:
+    """
+    Viewer class that provides the user interface (UI) and graphical rendering for the simulation.
+    It allows interaction with the simulation like selecting algorithms, heuristics, blocking routes, and displaying simulation results.
+    """
+
     def __init__(self, root, algorithm_callback, start_simulation_callback, restart_simulation_callback, endpoints_callback, reposition_vehicles_callback, change_weather_callback):
         self.root = root
         self.algorithm_callback = algorithm_callback

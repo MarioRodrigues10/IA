@@ -8,6 +8,31 @@ from algorithms.utils import manhattan_distance
 from weather import WeatherCondition
 
 def ucs_supply_delivery(state, start_point, end_point, terrain, weather, blocked_routes):
+    """
+    Implements the Uniform Cost Search (UCS) algorithm for supply delivery.
+
+    UCS is a graph search algorithm that explores paths in increasing order of their total travel cost. 
+    It ensures that the first time the algorithm reaches the destination, it has found the path with 
+    the minimum possible cost (in this case, the total distance).
+
+    This algorithm computes the optimal path from a start point to an end point while considering:
+    - Terrain restrictions for vehicles
+    - Weather conditions affecting the distance between nodes
+    - Available vehicles for the delivery of supplies
+
+    Args:
+        state (object): The current simulation state, including vehicles, graph, and terrain information.
+        start_point (object): The starting node (origin) containing the available supplies.
+        end_point (object): The end node (destination) with supplies needed for delivery.
+        terrain (object): Terrain information to determine vehicle accessibility.
+        weather (object): Weather conditions impacting vehicle movement and travel times.
+        blocked_routes (set): A set of blocked routes that vehicles cannot use.
+
+    Returns:
+        tuple: A tuple containing the path as a list of positions, total distance covered, total time taken,
+               and a dictionary mapping vehicle IDs to the supplies they delivered.
+               If no path is found, returns (None, 0, 0, "No path found").
+    """
     def get_supplies_to_send(needed_supplies, available_supplies):
         supplies_to_send = []
         supplies_consumed = {supply_type: 0 for supply_type in sp.SupplyType}
