@@ -1,4 +1,4 @@
-# Inteligência Artificial 🧠
+# Inteligência Artificial 🧠 - 19/20
 
 ## 🛠️ Usage
 
